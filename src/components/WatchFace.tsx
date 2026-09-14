@@ -206,7 +206,7 @@ export function WatchFace() {
           <>
             {/* Left Side: QNH & WIND */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[20px] shadow-xl py-2.5 px-1 w-[82px] h-[150px]"
+              className="absolute z-40 flex flex-col items-center justify-evenly py-2.5 px-1 w-[95px] h-[150px]"
               style={{ transform: `translate(-${dx}px, 0px)` }}
             >
               {/* QNH */}
@@ -227,12 +227,12 @@ export function WatchFace() {
             
             {/* Right Side: Weather Icon, TEMP, & VIS */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[20px] shadow-xl py-2.5 px-1 w-[82px] h-[150px]"
+              className="absolute z-40 flex flex-col items-center justify-around py-2.5 px-1 w-[82px] h-[150px]"
               style={{ transform: `translate(${dx}px, 0px)` }}
             >
               <div className="flex flex-col items-center justify-center gap-1">
-                <div className="drop-shadow-md scale-120">{getIcon(weather?.condition || 'Clear')}</div>
-                <span className="text-[28px] font-outfit font-medium tracking-tighter text-white leading-none drop-shadow-md">{weather?.temp}°</span>
+                <div className="drop-shadow-md scale-135">{getIcon(weather?.condition || 'Clear')}</div>
+                <span className="text-[40px] font-outfit font-medium tracking-tighter text-white leading-none drop-shadow-md">{weather?.temp}°</span>
               </div>
               <div className="flex flex-row items-baseline justify-center gap-[4px]">
                 <span className="text-[10px] font-bold tracking-wide text-yellow-400 drop-shadow-md leading-none">VIS:</span>
