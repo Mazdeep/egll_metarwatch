@@ -79,10 +79,10 @@ export function WatchFace() {
   const br = { x: dx, y: dy };
 
   return (
-    <div className="relative flex items-center justify-center p-4 select-none">
+    <div className="relative flex items-center justify-center select-none m-0 p-0 overflow-hidden w-screen h-screen bg-black">
       
       {/* Watch Hardware Bezel */}
-      <div className="relative w-[380px] h-[380px] rounded-full bg-gradient-to-b from-[#21619c] to-[#4e97d1] border-[10px] border-zinc-900 shadow-[inset_0_4px_24px_rgba(0,0,0,0.8),0_20px_40px_rgba(0,0,0,0.5)] flex items-center justify-center overflow-hidden font-sans ring-1 ring-zinc-800">
+      <div className="relative w-full h-full max-w-[100vw] max-h-[100vh] aspect-square rounded-full bg-gradient-to-b from-[#21619c] to-[#4e97d1] flex items-center justify-center overflow-hidden font-sans">
         
         {/* Outer Tick Marks */}
         {Array.from({ length: 72 }).map((_, i) => {
