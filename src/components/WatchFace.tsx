@@ -206,36 +206,37 @@ export function WatchFace() {
           <>
             {/* Left Side: QNH & WIND */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[16px] shadow-xl py-2 px-1 w-[68px] h-[120px]"
+              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[20px] shadow-xl py-2.5 px-1 w-[82px] h-[150px]"
               style={{ transform: `translate(-${dx}px, 0px)` }}
             >
               {/* QNH */}
-              <div className="flex flex-col items-center justify-center gap-[3px]">
-                <span className="text-[9px] font-bold tracking-[0.15em] text-yellow-400 drop-shadow-md leading-none">QNH</span>
-                <span className="text-[15px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md">{weather?.qnh}</span>
+              <div className="flex flex-col items-center justify-center gap-[4px]">
+                <span className="text-[16px] font-bold  text-yellow-400 drop-shadow-md leading-none">QNH</span>
+                <span className="text-[24px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md">{weather?.qnh}</span>
               </div>
               
               {/* WIND */}
-              <div className="flex flex-col items-center justify-center gap-[3px]">
-                <span className="text-[9px] font-bold tracking-[0.15em] text-yellow-400 drop-shadow-md leading-none">WIND</span>
-                <span className="text-[14px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md">
-                  {weather?.windDir}<span className="text-white/70 mx-[1px]">/</span>{weather?.windSpd}
-                </span>
+              <div className="flex flex-col items-center justify-center gap-[4px]">
+                <span className="text-[16px] font-bold text-yellow-400 drop-shadow-md leading-none">WIND</span>
+                <div className="flex flex-col items-center text-[24px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md gap-[2px]">
+                  <span>{weather?.windDir}<span className="text-white/70 ml-0.5"></span></span>
+                  <span>{weather?.windSpd}</span>
+                </div>
               </div>
             </div>
             
             {/* Right Side: Weather Icon, TEMP, & VIS */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[16px] shadow-xl py-2 px-1 w-[68px] h-[120px]"
+              className="absolute z-40 flex flex-col items-center justify-around bg-gradient-to-b from-white/20 to-white/5 backdrop-blur-md border border-white/30 rounded-[20px] shadow-xl py-2.5 px-1 w-[82px] h-[150px]"
               style={{ transform: `translate(${dx}px, 0px)` }}
             >
-              <div className="flex flex-col items-center justify-center gap-0.5">
-                <div className="drop-shadow-md scale-90">{getIcon(weather?.condition || 'Clear')}</div>
-                <span className="text-[20px] font-outfit font-medium tracking-tighter text-white leading-none drop-shadow-md">{weather?.temp}°</span>
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="drop-shadow-md scale-120">{getIcon(weather?.condition || 'Clear')}</div>
+                <span className="text-[28px] font-outfit font-medium tracking-tighter text-white leading-none drop-shadow-md">{weather?.temp}°</span>
               </div>
-              <div className="flex flex-row items-baseline justify-center gap-[3px]">
-                <span className="text-[8px] font-bold tracking-wide text-yellow-400 drop-shadow-md leading-none">VIS:</span>
-                <span className="text-[10px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md uppercase">{weather?.vis}</span>
+              <div className="flex flex-row items-baseline justify-center gap-[4px]">
+                <span className="text-[10px] font-bold tracking-wide text-yellow-400 drop-shadow-md leading-none">VIS:</span>
+                <span className="text-[14px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md uppercase">{weather?.vis}</span>
               </div>
             </div>
           </>
