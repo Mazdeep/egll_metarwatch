@@ -206,19 +206,19 @@ export function WatchFace() {
           <>
             {/* Left Side: QNH & WIND */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-center gap-[22px] py-2.5 px-1 w-[95px] h-[150px]"
+              className="absolute z-40 flex flex-col items-center justify-center gap-[22px] py-2.5 px-1 w-[95px] h-[165px]"
               style={{ transform: `translate(-${dx}px, 0px)` }}
             >
               {/* QNH */}
               <div className="flex flex-col items-center justify-center gap-[4px]">
                 <span className="text-[16px] font-bold  text-yellow-400 drop-shadow-md leading-none">QNH</span>
-                <span className="text-[24px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md">{weather?.qnh}</span>
+                <span className="text-[28px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md">{weather?.qnh}</span>
               </div>
               
               {/* WIND */}
               <div className="flex flex-col items-center justify-center gap-[4px]">
                 <span className="text-[16px] font-bold text-yellow-400 drop-shadow-md leading-none">WIND</span>
-                <div className="flex flex-col items-center text-[24px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md gap-[2px]">
+                <div className="flex flex-col items-center text-[28px] font-outfit font-medium tracking-tight text-white leading-none drop-shadow-md gap-[2px]">
                   <span>{weather?.windDir}<span className="text-white/70 ml-0.5"></span></span>
                   <span>{weather?.windSpd}</span>
                 </div>
