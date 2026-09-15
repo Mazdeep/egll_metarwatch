@@ -122,14 +122,14 @@ export function WatchFace() {
             <div
               key={deg}
               className={`absolute flex items-center justify-center ${
-                isCardinal ? 'text-white font-bold' : 'text-white/70 text-[8px] font-medium'
+                isCardinal ? 'text-white font-bold' : 'text-white/70 text-[15px] font-medium'
               }`}
               style={{ transform: `translate(${x}px, ${y}px)` }}
             >
               {isCardinal ? (
                 <div className="flex flex-col items-center">
-                  <span className="text-[11px] text-white font-black leading-none">{cardinal}</span>
-                  <span className="text-[8px] text-white/80 font-bold leading-none mt-[1px]">{label}</span>
+                  <span className="text-[15px] text-white font-black leading-none">{cardinal}</span>
+                  <span className="text-[18px] text-white/80 font-bold leading-none mt-[1px]">{label}</span>
                 </div>
               ) : (
                 label
