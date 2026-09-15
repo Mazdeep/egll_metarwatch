@@ -10,25 +10,49 @@ export interface WeatherData {
 
 export async function fetchWeatherData(): Promise<WeatherData | null> {
   const backupMetar = "EGLL 140020Z AUTO 23005KT 9999 FEW020 BKN028 19/18 Q1022";
+  
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
     
-    const response = await fetch('https://aviationweather.gov/api/data/metar?ids=EGLL&format=json', {
-      signal: controller.signal
-    });
+    // Fetch both aviation weather (for QNH, Wind, Vis) and OpenWeather (for Temp, Condition)
+    const [metarRes, openWeatherRes] = await Promise.all([
+      fetch('https://aviationweather.gov/api/data/metar?ids=EGLL&format=json', { signal: controller.signal }).catch(() => null),
+      fetch('/api/weather', { signal: controller.signal }).catch(() => null)
+    ]);
     
     clearTimeout(timeoutId);
     
-    if (!response.ok) {
-      return parseMetar(backupMetar);
+    let rawOb = backupMetar;
+    if (metarRes && metarRes.ok) {
+      const json = await metarRes.json();
+      rawOb = json[0]?.rawOb || backupMetar;
     }
     
-    const json = await response.json();
-    const raw = json[0]?.rawOb || backupMetar;
-    return parseMetar(raw);
+    const weatherData = parseMetar(rawOb);
+    
+    // Override temp and condition if OpenWeather succeeded
+    if (openWeatherRes && openWeatherRes.ok) {
+      const openWeatherJson = await openWeatherRes.json();
+      if (openWeatherJson && openWeatherJson.main && openWeatherJson.weather) {
+        weatherData.temp = Math.round(openWeatherJson.main.temp).toString();
+        
+        // Map OpenWeather condition codes to our icon set
+        // https://openweathermap.org/weather-conditions
+        const id = openWeatherJson.weather[0].id;
+        if (id >= 200 && id < 300) weatherData.condition = 'Storm';
+        else if (id >= 300 && id < 600) weatherData.condition = 'Rain';
+        else if (id >= 600 && id < 700) weatherData.condition = 'Snow';
+        else if (id >= 700 && id < 800) weatherData.condition = 'Fog';
+        else if (id === 800) weatherData.condition = 'Clear';
+        else if (id === 801 || id === 802) weatherData.condition = 'Partly Cloudy';
+        else if (id === 803 || id === 804) weatherData.condition = 'Cloudy';
+      }
+    }
+    
+    return weatherData;
   } catch (error) {
-    console.error("Failed to fetch METAR:", error);
+    console.error("Failed to fetch Weather data:", error);
     return parseMetar(backupMetar);
   }
 }

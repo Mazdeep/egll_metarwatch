@@ -71,7 +71,7 @@ export function WatchFace() {
   const arrowRotation = windDirNum - 90;
 
   // Complication Placements (Quadrants) - brought closer vertically to improve layout
-  const dx = 90;
+  const dx = 110;
   const dy = 55;
   const tl = { x: -dx, y: -dy };
   const tr = { x: dx, y: -dy };
@@ -79,10 +79,10 @@ export function WatchFace() {
   const br = { x: dx, y: dy };
 
   return (
-    <div className="relative flex items-center justify-center select-none m-0 p-0 overflow-hidden w-screen h-screen bg-black">
+    <div className="relative flex items-center justify-center select-none m-0 p-0 overflow-hidden w-[438px] h-[438px] bg-black">
       
       {/* Watch Hardware Bezel */}
-      <div className="relative w-full h-full max-w-[100vw] max-h-[100vh] aspect-square rounded-full bg-gradient-to-b from-[#21619c] to-[#4e97d1] flex items-center justify-center overflow-hidden font-sans">
+      <div className="relative w-[438px] h-[438px] rounded-full bg-gradient-to-b from-[#21619c] to-[#4e97d1] flex items-center justify-center overflow-hidden font-sans">
         
         {/* Outer Tick Marks */}
         {Array.from({ length: 72 }).map((_, i) => {
@@ -105,9 +105,9 @@ export function WatchFace() {
           
           // Angle maps directly: 270 is Top (-Y), 0 is Right (+X)
           const angle = deg * (Math.PI / 180);
-          // Move Cardinals slightly inward (to 148) so they dodge the wind arrow, 
-          // but push intermediate numbers further in (to 135) to de-emphasize them.
-          const radius = isCardinal ? 148 : 152;
+          // Move Cardinals slightly inward (to 178) so they dodge the wind arrow, 
+          // but push intermediate numbers further in (to 182) to de-emphasize them.
+          const radius = isCardinal ? 178 : 190;
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
           
@@ -182,15 +182,15 @@ export function WatchFace() {
         {/* Top = 270 (West), Bottom = 90 (East), Right = 360 (North) */}
         {/* The Northern runway is on the Right: 09L / 27R */}
         {/* The Southern runway is on the Left: 09R / 27L */}
-        <div className="absolute z-20 flex gap-[8px]">
+        <div className="absolute z-20 flex gap-[12px]">
           {/* Left Runway (Southern): 09R / 27L */}
-          <div className="w-[35px] h-[240px] bg-white/20 backdrop-blur-sm border border-white/30  flex flex-col justify-between items-center py-2.5 shadow-xl">
+          <div className="w-[40px] h-[280px] bg-white/20 backdrop-blur-sm border border-white/30  flex flex-col justify-between items-center py-2.5 shadow-xl">
             <span className="text-[13px] font-black tracking-tighter text-white rotate-180">09R</span>
             <div className="w-[2px] flex-1 bg-[repeating-linear-gradient(to_bottom,transparent,transparent_8px,#18181b_8px,#18181b_20px)] mx-auto my-3 opacity-40"></div>
             <span className="text-[13px] font-black tracking-tighter text-white">27L</span>
           </div>
           {/* Right Runway (Northern): 09L / 27R */}
-          <div className="w-[35px] h-[240px] bg-white/20 backdrop-blur-sm border border-white/30  flex flex-col justify-between items-center py-2.5 shadow-xl">
+          <div className="w-[40px] h-[280px] bg-white/20 backdrop-blur-sm border border-white/30  flex flex-col justify-between items-center py-2.5 shadow-xl">
             <span className="text-[13px] font-black tracking-tighter text-white rotate-180">09L</span>
             <div className="w-[2px] flex-1 bg-[repeating-linear-gradient(to_bottom,transparent,transparent_8px,#18181b_8px,#18181b_20px)] mx-auto my-3 opacity-40"></div>
             <span className="text-[13px] font-black tracking-tighter text-white">27R</span>
@@ -206,7 +206,7 @@ export function WatchFace() {
           <>
             {/* Left Side: QNH & WIND */}
             <div 
-              className="absolute z-40 flex flex-col items-center justify-evenly py-2.5 px-1 w-[95px] h-[150px]"
+              className="absolute z-40 flex flex-col items-center justify-center gap-[22px] py-2.5 px-1 w-[95px] h-[150px]"
               style={{ transform: `translate(-${dx}px, 0px)` }}
             >
               {/* QNH */}
