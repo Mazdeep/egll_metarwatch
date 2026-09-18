@@ -46,7 +46,8 @@ export function WatchFace() {
 
   const getIcon = (condition: string) => {
     switch (condition) {
-      case 'Clear': return <Sun className="w-8 h-8 text-white" strokeWidth={1.5} />;
+      case 'Clear': return <Sun className="w-8 h-8 text-yellow-100
+" strokeWidth={1.5} />;
       case 'Rain': return <CloudRain className="w-8 h-8 text-white" strokeWidth={1.5} />;
       case 'Snow': return <Snowflake className="w-8 h-8 text-white" strokeWidth={1.5} />;
       case 'Storm': return <CloudLightning className="w-8 h-8 text-white" strokeWidth={1.5} />;
@@ -230,7 +231,7 @@ export function WatchFace() {
               className="absolute z-40 flex flex-col items-center justify-around py-2.5 px-1 w-[82px] h-[150px]"
               style={{ transform: `translate(${dx}px, 0px)` }}
             >
-              <div className="flex flex-col items-center justify-center gap-1">
+              <div className="flex flex-col items-center justify-center gap-3">
                 <div className="drop-shadow-md scale-135">{getIcon(weather?.condition || 'Clear')}</div>
                 <span className="text-[40px] font-outfit font-medium tracking-tighter text-white leading-none drop-shadow-md">{weather?.temp}°</span>
               </div>

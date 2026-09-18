@@ -6,6 +6,23 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // API route to fetch METAR data for Heathrow
+  app.get("/api/metar", async (req, res) => {
+    try {
+      const response = await fetch(`https://aviationweather.gov/api/data/metar?ids=EGLL&format=json`, {
+        cache: 'no-store'
+      });
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch from AviationWeather" });
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   // API route to fetch OpenWeather data for Heathrow
   app.get("/api/weather", async (req, res) => {
     try {
@@ -17,8 +34,11 @@ async function startServer() {
       // Heathrow Lat & Lon
       const lat = 51.4700;
       const lon = -0.4543;
+      const timestamp = Date.now();
       
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&_=${timestamp}`, {
+        cache: 'no-store'
+      });
       if (!response.ok) {
         return res.status(response.status).json({ error: "Failed to fetch from OpenWeather" });
       }

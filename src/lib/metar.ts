@@ -16,9 +16,17 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
     const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
     
     // Fetch both aviation weather (for QNH, Wind, Vis) and OpenWeather (for Temp, Condition)
+    // Adding cache: 'no-store' and a timestamp query param to prevent browser caching
+    const timestamp = Date.now();
     const [metarRes, openWeatherRes] = await Promise.all([
-      fetch('https://aviationweather.gov/api/data/metar?ids=EGLL&format=json', { signal: controller.signal }).catch(() => null),
-      fetch('/api/weather', { signal: controller.signal }).catch(() => null)
+      fetch(`/api/metar?_=${timestamp}`, { 
+        signal: controller.signal,
+        cache: 'no-store'
+      }).catch(() => null),
+      fetch(`/api/weather?_=${timestamp}`, { 
+        signal: controller.signal,
+        cache: 'no-store'
+      }).catch(() => null)
     ]);
     
     clearTimeout(timeoutId);
