@@ -46,8 +46,7 @@ export function WatchFace() {
 
   const getIcon = (condition: string) => {
     switch (condition) {
-      case 'Clear': return <Sun className="w-8 h-8 text-yellow-100
-" strokeWidth={1.5} />;
+      case 'Clear': return <Sun className="w-8 h-8 text-yellow-100" strokeWidth={1.5} />;
       case 'Rain': return <CloudRain className="w-8 h-8 text-white" strokeWidth={1.5} />;
       case 'Snow': return <Snowflake className="w-8 h-8 text-white" strokeWidth={1.5} />;
       case 'Storm': return <CloudLightning className="w-8 h-8 text-white" strokeWidth={1.5} />;

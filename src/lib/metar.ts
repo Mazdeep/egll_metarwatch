@@ -8,45 +8,111 @@ export interface WeatherData {
   raw: string;
 }
 
-export async function fetchWeatherData(): Promise<WeatherData | null> {
-  const backupMetar = "EGLL 140020Z AUTO 23005KT 9999 FEW020 BKN028 19/18 Q1022";
-  
+let inMemoryCachedMetar: string | null = null;
+try {
+  inMemoryCachedMetar = localStorage.getItem('last_known_egll_metar');
+} catch (_) {}
+
+async function fetchWithClientTimeout(url: string, timeoutMs = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-    
-    // Fetch both aviation weather (for QNH, Wind, Vis) and OpenWeather (for Temp, Condition)
-    // Adding cache: 'no-store' and a timestamp query param to prevent browser caching
-    const timestamp = Date.now();
-    const [metarRes, openWeatherRes] = await Promise.all([
-      fetch(`/api/metar?_=${timestamp}`, { 
-        signal: controller.signal,
-        cache: 'no-store'
-      }).catch(() => null),
-      fetch(`/api/weather?_=${timestamp}`, { 
-        signal: controller.signal,
-        cache: 'no-store'
-      }).catch(() => null)
-    ]);
-    
+    const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeoutId);
-    
-    let rawOb = backupMetar;
-    if (metarRes && metarRes.ok) {
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+}
+
+export async function fetchWeatherData(): Promise<WeatherData | null> {
+  const defaultFallbackMetar = "EGLL 140020Z AUTO 23005KT 9999 FEW020 BKN028 19/18 Q1022";
+  const timestamp = Date.now();
+  let rawOb: string | null = null;
+
+  // 1. Primary Attempt: Server Proxy (/api/metar)
+  // This proxy tries AviationWeather -> ATIS Generator -> VATSIM with no CORS issues
+  try {
+    const metarRes = await fetchWithClientTimeout(`/api/metar?_=${timestamp}`, 6000);
+    if (metarRes.ok) {
       const json = await metarRes.json();
-      rawOb = json[0]?.rawOb || backupMetar;
+      const extracted = json.metar || (Array.isArray(json) ? json[0]?.rawOb : null) || json.data?.[0]?.rawOb || json.rawOb;
+      if (extracted && typeof extracted === 'string') {
+        rawOb = extracted;
+      }
     }
-    
-    const weatherData = parseMetar(rawOb);
-    
-    // Override temp and condition if OpenWeather succeeded
+  } catch (e) {
+    console.warn("Primary /api/metar failed or unreachable:", e);
+  }
+
+  // 2. Secondary Attempt: Direct ATIS Generator API (supports CORS *)
+  if (!rawOb) {
+    try {
+      const atisRes = await fetchWithClientTimeout(`https://atisgenerator.com/api/v1/airports/EGLL/metar`, 5000);
+      if (atisRes.ok) {
+        const json = await atisRes.json();
+        if (json?.data?.metar) {
+          rawOb = json.data.metar;
+        }
+      }
+    } catch (e) {
+      console.warn("Direct ATIS Generator fallback failed:", e);
+    }
+  }
+
+  // 3. Tertiary Attempt: Direct VATSIM API (supports CORS *)
+  if (!rawOb) {
+    try {
+      const vatsimRes = await fetchWithClientTimeout(`https://metar.vatsim.net/EGLL`, 5000);
+      if (vatsimRes.ok) {
+        const text = await vatsimRes.text();
+        if (text && text.trim().length > 10) {
+          rawOb = text.trim();
+        }
+      }
+    } catch (e) {
+      console.warn("Direct VATSIM fallback failed:", e);
+    }
+  }
+
+  // 4. Primary direct attempt if on non-CORS restricted environment
+  if (!rawOb) {
+    try {
+      const directAviationRes = await fetchWithClientTimeout(`https://aviationweather.gov/api/data/metar?ids=EGLL&format=json`, 5000);
+      if (directAviationRes.ok) {
+        const json = await directAviationRes.json();
+        if (Array.isArray(json) && json[0]?.rawOb) {
+          rawOb = json[0].rawOb;
+        }
+      }
+    } catch (e) {
+      console.warn("Direct AviationWeather attempt failed:", e);
+    }
+  }
+
+  // If successfully fetched, cache it so the watch never drops back to outdated static data
+  if (rawOb) {
+    inMemoryCachedMetar = rawOb;
+    try {
+      localStorage.setItem('last_known_egll_metar', rawOb);
+    } catch (_) {}
+  } else {
+    // Use last known live reading if available, or fallback
+    rawOb = inMemoryCachedMetar || defaultFallbackMetar;
+  }
+
+  const weatherData = parseMetar(rawOb);
+
+  // Attempt OpenWeather enhancement for temperature & icon if configured
+  try {
+    const openWeatherRes = await fetchWithClientTimeout(`/api/weather?_=${timestamp}`, 4000).catch(() => null);
     if (openWeatherRes && openWeatherRes.ok) {
       const openWeatherJson = await openWeatherRes.json();
       if (openWeatherJson && openWeatherJson.main && openWeatherJson.weather) {
         weatherData.temp = Math.round(openWeatherJson.main.temp).toString();
         
         // Map OpenWeather condition codes to our icon set
-        // https://openweathermap.org/weather-conditions
         const id = openWeatherJson.weather[0].id;
         if (id >= 200 && id < 300) weatherData.condition = 'Storm';
         else if (id >= 300 && id < 600) weatherData.condition = 'Rain';
@@ -57,12 +123,11 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
         else if (id === 803 || id === 804) weatherData.condition = 'Cloudy';
       }
     }
-    
-    return weatherData;
-  } catch (error) {
-    console.error("Failed to fetch Weather data:", error);
-    return parseMetar(backupMetar);
+  } catch (_) {
+    // Keep parsed METAR condition & temperature
   }
+
+  return weatherData;
 }
 
 export function parseMetar(metar: string): WeatherData {
@@ -105,7 +170,7 @@ export function parseMetar(metar: string): WeatherData {
   else if (cleanMetar.includes(' FG') || cleanMetar.includes(' BR') || cleanMetar.includes(' HZ')) condition = 'Fog';
   else if (cleanMetar.includes(' OVC') || cleanMetar.includes(' BKN')) condition = 'Cloudy';
   else if (cleanMetar.includes(' SCT') || cleanMetar.includes(' FEW')) condition = 'Partly Cloudy';
-  else if (cleanMetar.includes(' CAVOK') || cleanMetar.includes(' SKC') || cleanMetar.includes(' CLR') || cleanMetar.includes(' NSC')) condition = 'Clear';
+  else if (cleanMetar.includes(' CAVOK') || cleanMetar.includes(' SKC') || cleanMetar.includes(' CLR') || cleanMetar.includes(' NSC') || cleanMetar.includes(' NCD')) condition = 'Clear';
 
   // 5. Visibility (e.g. 9999, 0350, 10SM)
   const visMatch = cleanMetar.match(/\s(\d{4}|[M\d]?\d+(?:\/\d+)?SM)\s/);
