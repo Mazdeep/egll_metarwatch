@@ -4,6 +4,7 @@
 
 @theme {
   --color-accent: oklch(62.7% 0.194 149.214);
+  --font-sans: 'DM Sans', sans-serif;
   --font-outfit: 'Outfit', sans-serif;
 }
 

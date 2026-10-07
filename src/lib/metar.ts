@@ -1,3 +1,5 @@
+export type FlightCategory = 'VFR' | 'MVFR' | 'IFR' | 'LIFR';
+
 export interface WeatherData {
   windDir: string;
   windSpd: string;
@@ -5,6 +7,7 @@ export interface WeatherData {
   temp: string;
   condition: string;
   vis: string;
+  flightRules: FlightCategory;
   raw: string;
 }
 
@@ -26,10 +29,16 @@ async function fetchWithClientTimeout(url: string, timeoutMs = 5000): Promise<Re
   }
 }
 
-export async function fetchWeatherData(): Promise<WeatherData | null> {
+export function getInitialWeatherData(): WeatherData {
+  const fallback = inMemoryCachedMetar || "EGLL 140020Z AUTO 23005KT 9999 FEW020 BKN028 19/18 Q1022";
+  return parseMetar(fallback);
+}
+
+export async function fetchWeatherData(): Promise<WeatherData> {
   const defaultFallbackMetar = "EGLL 140020Z AUTO 23005KT 9999 FEW020 BKN028 19/18 Q1022";
   const timestamp = Date.now();
   let rawOb: string | null = null;
+  let apiFltCat: string | undefined = undefined;
 
   // 1. Primary Attempt: Server Proxy (/api/metar)
   // This proxy tries AviationWeather -> ATIS Generator -> VATSIM with no CORS issues
@@ -40,6 +49,9 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
       const extracted = json.metar || (Array.isArray(json) ? json[0]?.rawOb : null) || json.data?.[0]?.rawOb || json.rawOb;
       if (extracted && typeof extracted === 'string') {
         rawOb = extracted;
+      }
+      if (json.fltCat || (Array.isArray(json) && json[0]?.fltCat) || json.data?.[0]?.fltCat) {
+        apiFltCat = json.fltCat || (Array.isArray(json) ? json[0]?.fltCat : null) || json.data?.[0]?.fltCat;
       }
     }
   } catch (e) {
@@ -84,6 +96,7 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
         const json = await directAviationRes.json();
         if (Array.isArray(json) && json[0]?.rawOb) {
           rawOb = json[0].rawOb;
+          apiFltCat = json[0]?.fltCat;
         }
       }
     } catch (e) {
@@ -102,7 +115,7 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
     rawOb = inMemoryCachedMetar || defaultFallbackMetar;
   }
 
-  const weatherData = parseMetar(rawOb);
+  const weatherData = parseMetar(rawOb, apiFltCat);
 
   // Attempt OpenWeather enhancement for temperature & icon if configured
   try {
@@ -130,7 +143,7 @@ export async function fetchWeatherData(): Promise<WeatherData | null> {
   return weatherData;
 }
 
-export function parseMetar(metar: string): WeatherData {
+export function parseMetar(metar: string, apiFlightCat?: string): WeatherData {
   const cleanMetar = metar.trim();
   
   // Defaults
@@ -186,5 +199,87 @@ export function parseMetar(metar: string): WeatherData {
     vis = '10km+';
   }
 
-  return { windDir, windSpd, qnh, temp, condition, vis, raw: cleanMetar };
+  // 6. Flight Rules Category (VFR, MVFR, IFR, LIFR)
+  let flightRules: FlightCategory = 'VFR';
+  if (apiFlightCat && ['VFR', 'MVFR', 'IFR', 'LIFR'].includes(apiFlightCat.toUpperCase())) {
+    flightRules = apiFlightCat.toUpperCase() as FlightCategory;
+  } else {
+    flightRules = calculateFlightCategory(cleanMetar);
+  }
+
+  return { windDir, windSpd, qnh, temp, condition, vis, flightRules, raw: cleanMetar };
+}
+
+/**
+ * Accurately determines flight rules category according to FAA / ICAO standards:
+ * - VFR: Ceiling > 3000 ft AND Visibility > 5 SM (> 8000m / 9999)
+ * - MVFR: Ceiling 1000 - 3000 ft AND/OR Visibility 3 - 5 SM (4800m - 8000m)
+ * - IFR: Ceiling 500 - <1000 ft AND/OR Visibility 1 - <3 SM (1600m - <4800m)
+ * - LIFR: Ceiling < 500 ft AND/OR Visibility < 1 SM (< 1600m)
+ */
+export function calculateFlightCategory(metar: string): FlightCategory {
+  const clean = metar.trim().toUpperCase();
+
+  // 1. If CAVOK is present, ceiling >= 5000ft and vis >= 10km -> always VFR
+  if (clean.includes(' CAVOK')) {
+    return 'VFR';
+  }
+
+  // 2. Parse Visibility
+  let visMiles = Infinity;
+
+  // Check statute miles fraction (e.g., 1 1/2SM, 1/2SM, M1/4SM)
+  const smFractionMatch = clean.match(/\s(?:M)?(\d+)?\s?(\d+)\/(\d+)SM\s/);
+  // Check statute miles whole (e.g. 10SM, P6SM, 5SM, 3SM)
+  const smWholeMatch = clean.match(/\s(?:P|M)?(\d+)SM\s/);
+
+  if (smFractionMatch) {
+    const whole = smFractionMatch[1] ? parseFloat(smFractionMatch[1]) : 0;
+    const num = parseFloat(smFractionMatch[2]);
+    const den = parseFloat(smFractionMatch[3]);
+    visMiles = whole + (num / den);
+  } else if (smWholeMatch) {
+    visMiles = parseFloat(smWholeMatch[1]);
+  } else {
+    // Check 4-digit meter format (e.g. 9999, 5000, 0800)
+    const meterMatch = clean.match(/\s(\d{4})\s/);
+    if (meterMatch) {
+      const meters = parseInt(meterMatch[1], 10);
+      if (meters === 9999) {
+        visMiles = 6.2; // 10km+ -> > 5SM
+      } else {
+        // 1 statute mile ≈ 1609.34 meters
+        visMiles = meters / 1609.34;
+      }
+    }
+  }
+
+  // 3. Parse Ceiling (lowest layer of BKN, OVC, or VV)
+  // Ceiling only exists for Broken (BKN), Overcast (OVC), or Vertical Visibility (VV)
+  // FEW and SCT are not ceilings.
+  let ceilingFeet = Infinity;
+
+  const ceilingMatches = clean.matchAll(/(?:BKN|OVC|VV)(\d{3})/g);
+  for (const match of ceilingMatches) {
+    const feet = parseInt(match[1], 10) * 100;
+    if (feet < ceilingFeet) {
+      ceilingFeet = feet;
+    }
+  }
+
+  // 4. Standard Aviation Flight Rules (most restrictive condition rules)
+  // LIFR (Low IFR): Ceiling < 500 ft and/or Visibility < 1 mile
+  if (ceilingFeet < 500 || visMiles < 1) {
+    return 'LIFR';
+  }
+  // IFR (Instrument): Ceiling 500 to < 1000 ft and/or Visibility 1 to < 3 miles
+  if (ceilingFeet < 1000 || visMiles < 3) {
+    return 'IFR';
+  }
+  // MVFR (Marginal VFR): Ceiling 1000 to 3000 ft and/or Visibility 3 to 5 miles
+  if (ceilingFeet <= 3000 || visMiles <= 5) {
+    return 'MVFR';
+  }
+  // VFR (Visual Flight Rules): Ceiling > 3000 ft and Visibility > 5 miles
+  return 'VFR';
 }

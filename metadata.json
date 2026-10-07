@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Aviation METAR Watch Face",
+  "description": "Pilot aviation watch face displaying live METAR, runways, wind vector, QNH, visibility, and flight rules indicator.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

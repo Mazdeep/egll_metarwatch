@@ -15,7 +15,7 @@ async function fetchWithTimeout(url: string, timeoutMs = 6000, options: RequestI
   }
 }
 
-async function getMetarWithFallback(icao = "EGLL"): Promise<{ metar: string; source: string; rawData?: any }> {
+async function getMetarWithFallback(icao = "EGLL"): Promise<{ metar: string; source: string; fltCat?: string; rawData?: any }> {
   // 1. Primary: aviationweather.gov
   try {
     const res = await fetchWithTimeout(`https://aviationweather.gov/api/data/metar?ids=${icao}&format=json`, 5000, {
@@ -25,7 +25,12 @@ async function getMetarWithFallback(icao = "EGLL"): Promise<{ metar: string; sou
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data[0]?.rawOb) {
-        return { metar: data[0].rawOb, source: 'aviationweather', rawData: data };
+        return { 
+          metar: data[0].rawOb, 
+          source: 'aviationweather', 
+          fltCat: data[0].fltCat,
+          rawData: data 
+        };
       }
     }
   } catch (err) {
@@ -79,9 +84,10 @@ async function startServer() {
       res.json({
         metar: result.metar,
         source: result.source,
+        fltCat: result.fltCat,
         rawOb: result.metar,
         // Also wrap as array in case client expects json[0]
-        data: [{ rawOb: result.metar }]
+        data: [{ rawOb: result.metar, fltCat: result.fltCat }]
       });
     } catch (error) {
       console.error("METAR fetch error:", error);
